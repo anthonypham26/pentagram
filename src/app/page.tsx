@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 
+//This is where the user can input their prompt and generate an image.
+//Make sure to update the UI and handle the API response to display the images generated
+
 export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,12 +19,25 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.API_KEY}`,
         },
         body: JSON.stringify({ text: inputText }),
       });
 
       const data = await response.json();
-      console.log(data);
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to generate image"); // Handle API failure
+      }
+      
+      if (data.imageUrl) {
+        const img = new Image(); // Create a new image element
+        img.onload = () => {
+          setImageUrl(data.imageUrl); // Set the image URL in the state after it loads
+        };
+        img.src = data.imageUrl; // Set the source of the image to trigger loading
+      }
+      
       setInputText("");
     } catch (error) {
       console.error("Error:", error);
@@ -34,6 +51,16 @@ export default function Home() {
     
     <div className="min-h-screen flex flex-col justify-between p-8">
       <main className="flex-1">{/* Main content can go here */}</main>
+
+      {imageUrl && (
+        <div className="w-full max-w-2xl rounded-lg overflow-hidden shadow-lg">
+          <img
+            src={imageUrl}
+            alt="Generated artwork"
+            className="w-full h-auto"
+          />
+        </div>
+      )}
 
       <footer className="w-full max-w-3xl mx-auto">
         <form onSubmit={handleSubmit} className="w-full">
